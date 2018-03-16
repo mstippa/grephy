@@ -1,0 +1,28 @@
+* {
+	margin: 0px;
+	padding: 0px;
+	box-sizing: border-box;
+}
+
+.container {
+	margin: 0px;
+	padding: 0px;
+}
+
+.app {
+	margin: 0px;
+	padding: 0px;
+}
+
+.title-box {
+	margin-top: 25px;
+	/*position: absolute;
+	top: 10%;
+	font-size: 50px;
+	left: 50%;
+	transform: translate(-50%,-50%);*/
+}
+
+.input-group {
+	margin-top: 25px;
+}
