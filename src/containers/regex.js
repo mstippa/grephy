@@ -1,5 +1,7 @@
 import React, { Component } from 'react';
 
+const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 ';
+
 export default class Regex extends Component {
 	constructor(props) {
 		super(props);
@@ -7,7 +9,25 @@ export default class Regex extends Component {
 		// this component's state
 		this.state = { 
 			regex: '',
-			error: ''
+			error: '',
+		};
+
+		this.indexInRegex = 0;
+		this.indexInTransitions = 0;
+
+		// the transition function as a 3 dimensional array
+		// the index into the array represents a state	
+		this.transitions = [];
+
+		this.curCharacter;
+		this.regexChar = {
+			'*': this.splat,
+			'^': this.carrot,
+			'|': this.alternator,
+			'(': this.grouping,
+			')': this.grouping,
+			'$': this.eof,
+			'.': this.period 
 		};
 
 		this.onFormSubmit = this.onFormSubmit.bind(this);
@@ -20,13 +40,45 @@ export default class Regex extends Component {
 		return (this.state.regex === '');
 	}
 
-	learnAlphabet() {
+ 
+	convertToNFA() {
+
+		curCharacter = this.state.regex.charAt(indexInRegex);
+
+		if (curCharacter in regexChar) {
+			indexInRegex++;
+			regexChar[curCharacter]; // call the function associated with the regex character
+		}
+
+	}
+
+	carrot() {
+
+	}
+
+	alternator() {
+
+	}
+
+	grouping() {
+
+	}
+
+	splat() {
+
+	}
+
+	period() {
+
+	}
+
+	eof() {
 
 	}
 
 
 	// gets called when the input changes
-	onInputChange() {
+	onInputChange(event) {
 		this.setState({regex: event.target.value});
 	}
 
@@ -37,7 +89,7 @@ export default class Regex extends Component {
 
 		if(!this.validate()) {
 			this.setState({error: ''});
-			this.learnAlphabet();
+			this.convertToNFA();
 		} else {
 			this.setState({error: 'Enter a regular expression'});
 		}
