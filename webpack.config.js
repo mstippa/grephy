@@ -1,15 +1,15 @@
+var webpack = require('webpack');
 
+const plugins = [
+    new webpack.DefinePlugin({ "global.GENTLY": false })
+]
 
 module.exports = {
   node: {
-    fs: 'empty'
+    fs: 'empty',
+    __dirname: true
   },
-  // plugins: [
-  //   new webpack.DefinePlugin({
-  //     'process.env.NODE_ENV': JSON.stringify('development')
-  //   })
-
-  // ],
+  plugins: plugins,
   entry: [
     './src/index.js'
   ],
