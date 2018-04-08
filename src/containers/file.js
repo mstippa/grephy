@@ -41,7 +41,7 @@ class File extends Component {
                 picReader.addEventListener("load", (event) => {
 
                     var textFile = event.target;
-                    console.log(textFile);
+                    this.props.fileUpload(textFile.result); // calling the fileUpload action creator
 
                     // var div = document.createElement("div");
 

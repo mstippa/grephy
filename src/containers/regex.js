@@ -1,5 +1,9 @@
 import React, { Component } from 'react';
 
+// an array that represents the transition functions from state to state
+// the index into the array represents a state
+var transitions = [];
+
 const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 ';
 
 export default class Regex extends Component {
@@ -10,10 +14,10 @@ export default class Regex extends Component {
 		this.state = { 
 			regex: '',
 			error: '',
-			indexInRegex: 0,
-			indexInTransitions: 0,
-			transitions: [],
-			curCharacter: '',
+			indexInRegex: 0, // the current index in the regex
+			transitionState: 0, // the state where 
+			indexInTransitions: 0, // the index into the transitions array, represents state
+			curCharacter: '', // the current character in the regex 
 			regexChar: {
 				'*': this.splat(),
 				'^': this.carrot(),
@@ -24,24 +28,6 @@ export default class Regex extends Component {
 				'.': this.period() 
 			}
 		};
-
-		// this.indexInRegex = 0;
-		// this.indexInTransitions = 0;
-
-		// // the transition function as a 3 dimensional array
-		// // the index into the array represents a state	
-		// this.transitions = [];
-
-		// this.curCharacter;
-		// this.regexChar = {
-		// 	'*': this.splat,
-		// 	'^': this.carrot,
-		// 	'|': this.alternator,
-		// 	'(': this.grouping,
-		// 	')': this.grouping,
-		// 	'$': this.eof,
-		// 	'.': this.period 
-		// };
 
 		this.onFormSubmit = this.onFormSubmit.bind(this);
 		this.onInputChange = this.onInputChange.bind(this);
@@ -71,13 +57,14 @@ export default class Regex extends Component {
 
 		// finished deciphering the regex
 		} else {
-
+			console.log(transitions);
 		}
 
 	}
 
 	character() {
-
+	transitions[this.state.indexInTransitions]= [[]]
+		
 	}
 
 	carrot() {
@@ -113,9 +100,10 @@ export default class Regex extends Component {
 
 	// gets called when the form is submitted
 	onFormSubmit(event) {
-		event.preventDefault();
+		event.preventDefault(); // so the browser doesn't submit the form
 		if(this.validate() === false) {
 			this.setState({error: ''});
+			this.props.getFilePath();
 			this.convertToNFA();
 		} else {
 			this.setState({error: 'Enter a regular expression'});
@@ -144,3 +132,4 @@ export default class Regex extends Component {
 		);	
 	}	
 }
+

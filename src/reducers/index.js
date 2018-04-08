@@ -1,7 +1,8 @@
 import { combineReducers } from 'redux';
+import InputBoxReducer from './reducer_input_box';
 
 const rootReducer = combineReducers({
-  state: (state = {}) => state
+	input: InputBoxReducer
 });
 
 export default rootReducer;
