@@ -5,14 +5,6 @@ import { connect } from 'react-redux';
 // the index into the array represents a state
 var transitions = [];
 const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '; // all the acceptable characters
-const specialCharacters = { // object that represents special regex characters
-	'^': this.carrot(),
-	'|': this.alternator(),
-	'(': this.grouping(),
-	')': this.grouping(),
-	'$': this.eof(),
-	'.': this.period()
-}
 
 class Regex extends Component {
 	constructor(props) {
@@ -74,16 +66,28 @@ class Regex extends Component {
 	}
 
 	// recursive function that reads the regex and calls the correct production based on the current character 
-	convertToNFA() {	
-	console.log(this.state);	
+	convertToNFA() {		
 		if (this.state.indexInRegex === this.state.regex.length) { // if no more characters to read
 			console.log(transitions);
-		} else { 	
-			if (this.state.curCharacter in specialCharacters) { // if the current character is a special character					
-				specialCharacters[this.state.curCharacter]; // call the function associated with the special character
-			} else if (alphabet.indexOf(this.state.curCharacter) > -1) { // if the current character is apart of the alphabet
-				this.character();
-			}
+		} else { 
+			switch (curCharacter) {
+				case '(':
+					this.grouping();
+				case ')':
+					this.grouping();
+				case '*':
+					this.splat();
+				case '|':
+					this.alternator();
+				case '.':
+					this.period();
+				case '^':
+					this.carrot();
+				case '$':
+					this.eof();
+				default:
+					this.character();					
+			}	
 			this.convertToNFA(); // keep calling the function until the regex is deciphered
 		}
 
