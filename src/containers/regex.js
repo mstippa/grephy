@@ -37,13 +37,13 @@ class Regex extends Component {
 		var curCharacter = this.state.curCharacter; // assign the current character in the regex to a variable
 		var stateTransitions = {}; // create an object that will hold all the transitions on a state
 		if (transitionType == 'new') { // if the transition is to a new state
-			stateTransitions.curCharacter = [this.state.indexInTransitions+1]; // creating a transition to a new state
+			stateTransitions[curCharacter] = [this.state.indexInTransitions+1]; // creating a transition to a new state
 			console.log("transition created");
 		} else { // if the transition needs to loopback
 			if (groupingIndex === -1) { // if the transition loops back to the current state
-				stateTransitions.curCharacter = [this.state.indexInTransitions] // creating a transition to the current state
+				stateTransitions[curCharacter] = [this.state.indexInTransitions] // creating a transition to the current state
 			} else {
-				stateTransitions.curCharacter = [groupingIndex]; // creating a transition back to a previous state
+				stateTransitions[curCharacter] = [groupingIndex]; // creating a transition back to a previous state
 				groupingIndex = -1;
 			}			
 		}	
@@ -72,10 +72,11 @@ class Regex extends Component {
 		var regexIndex = this.state.indexInRegex;
 		regex = this.state.regex;
 		if (regexIndex = regex.length) { // to prevent an "array out of bounds" error	
-			this.setState({curCharacter: this.state.regex.charAt(regexIndex)}, () => { // changing the current character in the regex and passing in a callback function			
+			this.setState({curCharacter: this.state.regex.charAt(this.state.indexInRegex)}, () => { // changing the current character in the regex and passing in a callback function			
 				if (regexIndex+1 !== regex.length) { // if the next character is not null
 					this.setState({nextCharacter: this.state.regex.charAt(this.state.indexInRegex+1)}, () => { // changing the next character in the regex and passing in a callback function
 						console.log("characters got");
+						console.log("current char: " + this.state.curCharacter);
 						callback();
 					});
 				} else { // if the next character is null
@@ -94,7 +95,7 @@ class Regex extends Component {
 		regex = this.state.regex;
 		// console.log(this.state.indexInRegex + "this is the index in the regex");
 		if (this.state.indexInRegex > regex.length) { // if no more characters to read
-			console.log(transitions);
+			console.log(transitions[0]);
 		} else { 
 			switch (this.state.curCharacter) {
 				case '(':
@@ -131,12 +132,17 @@ class Regex extends Component {
 		} else { // then the current character is ")"
 			if (this.state.nextCharacter === '*') {
 				this.splat();
+			} else if (alphabet.indexOf(this.state.nextCharacter) > -1 || this.state.nextCharacter === null) {
+				this.getCharactersInRegex(() => {
+					this.updateRegexIndex(1, () => {
+						this.convertToNFA();
+					})
+				})
 			}
 		}
 	}
 
 	character() {
-		console.log("character function");
 		if (alphabet.indexOf(this.state.nextCharacter) > -1 || this.state.nextCharacter === null) { // if the next character in the regex is in the alphabet or null
 			this.createNewTransition('new') // add a transition to a new state on the current character
 			this.updateTransitionsIndex(() => { // update the transitions index
@@ -150,14 +156,23 @@ class Regex extends Component {
 			
 		} else if (this.state.nextCharacter === '*') { // if the next character in the regex is the splat symbol 
 			this.splat();
-		} else if (this.state.nextCharacter === ')') {
+		} else if (this.state.nextCharacter === '(') {			
 			this.createNewTransition('new')
 			this.updateTransitionsIndex(() => {
+				this.getCharactersInRegex(() => {
+					this.updateRegexIndex(1, () => {
+						console.log(this.state.curCharacter);
+						this.grouping();
+					});
+				});	
+			});
+		} else if (this.state.nextCharacter === ")") {
+			this.getCharactersInRegex(() => {
 				this.updateRegexIndex(1, () => {
 					this.grouping();
-				});
-			});
-									
+				})
+			})
+
 		} else {
 			this.updateRegexIndex(1);
 		}	
