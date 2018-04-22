@@ -35,6 +35,7 @@ class Regex extends Component {
 	createNewTransition(transitionType) {
 		console.log("creating a new transition");
 		var curCharacter = this.state.curCharacter; // assign the current character in the regex to a variable
+		console.log(curCharacter);
 		var stateTransitions = {}; // create an object that will hold all the transitions on a state
 		if (transitionType == 'new') { // if the transition is to a new state
 			stateTransitions[curCharacter] = [this.state.indexInTransitions+1]; // creating a transition to a new state
@@ -48,6 +49,8 @@ class Regex extends Component {
 			}			
 		}	
 		transitions[this.state.indexInTransitions] = stateTransitions; // add the state object to the transitions table 
+		console.log(stateTransitions);
+		console.log(transitions);
 	}
 
 	// updates the regex index depending on the increment argument
@@ -68,40 +71,49 @@ class Regex extends Component {
 	}
 
 	getCharactersInRegex(callback) {
-		console.log("getting new characters")
+		console.log("getting characters");
 		var regexIndex = this.state.indexInRegex;
 		regex = this.state.regex;
-		if (regexIndex = regex.length) { // to prevent an "array out of bounds" error	
-			this.setState({curCharacter: this.state.regex.charAt(this.state.indexInRegex)}, () => { // changing the current character in the regex and passing in a callback function			
-				if (regexIndex+1 !== regex.length) { // if the next character is not null
+		if (regexIndex != regex.length) {  // to prevent an "array out of bounds" error				
+			this.setState({curCharacter: this.state.regex.charAt(this.state.indexInRegex)}, () => { // changing the current character in the regex and passing in a callback function		
+				if (regexIndex+1 !== regex.length) { // if the next character is not null					
 					this.setState({nextCharacter: this.state.regex.charAt(this.state.indexInRegex+1)}, () => { // changing the next character in the regex and passing in a callback function
 						console.log("characters got");
-						console.log("current char: " + this.state.curCharacter);
 						callback();
 					});
 				} else { // if the next character is null
 					this.setState({nextCharacter: null}, () => {
-						console.log("characters got");
 						callback();
 					});
 				}	
 			});
+		} else { 
+			callback();
 		}		
 	}
 
-	// recursive function that reads the regex and calls the correct production based on the current character 
+	// reads the regex and calls the correct production based on the current character 
 	convertToNFA() {
 		console.log("NFA");
 		regex = this.state.regex;
 		// console.log(this.state.indexInRegex + "this is the index in the regex");
 		if (this.state.indexInRegex > regex.length) { // if no more characters to read
-			console.log(transitions[0]);
+			console.log(transitions);
 		} else { 
+			
 			switch (this.state.curCharacter) {
 				case '(':
-					this.grouping();
-				case ')':
-					this.grouping();
+				console.log("current character: " + this.state.curCharacter);
+					this.grouping(() => {
+						this.convertToNFA();						
+					});
+					break;
+				case ')':	
+				console.log("current character: " + this.state.curCharacter);		
+					this.grouping(() => {
+						this.convertToNFA();
+					});
+					break;
 				case '*':
 					this.splat();
 				case '|':
@@ -113,76 +125,82 @@ class Regex extends Component {
 				case '$':
 					this.eof();
 				default:
-					this.character();					
+					this.character(() => {
+						this.convertToNFA();
+					});						
 			}	
 		}
 	}
 
 	// ******** Productions that get called when a specific character in regex is read ********** \\
 
-	grouping() {
+	grouping(callback) {
 		console.log("grouping");
 		if (this.state.curCharacter === '(') {
 			groupingIndex = this.state.indexInTransitions; // need to remember the current state in case we'll need to loopback to it
-			this.getCharactersInRegex(() => {
-				this.updateRegexIndex(1, () => {
-					this.convertToNFA();
-				});		
-			});			
-		} else { // then the current character is ")"
-			if (this.state.nextCharacter === '*') {
-				this.splat();
-			} else if (alphabet.indexOf(this.state.nextCharacter) > -1 || this.state.nextCharacter === null) {
-				this.getCharactersInRegex(() => {
-					this.updateRegexIndex(1, () => {
-						this.convertToNFA();
+			console.log("groupingIndex: " + groupingIndex);
+			this.getCharactersInRegex(() => { 	// get the new characters in the regex
+				this.updateRegexIndex(1, () => { // increase the regex index by 1	
+					console.log("calling nfa");	
+					callback(); // keep calling the function until the regex is converted into an NFA
+				});
+			}); 
+		} else { // then the next character is ")"	
+			if (alphabet.indexOf(this.state.regex.charAt(this.state.regexIndex+1)) > -1 || this.state.regexIndex+1 == regex.length) {
+				this.createNewTransition('new');
+				this.updateRegexIndex(1, () => { // need to update the regex first because we were looking to symbols ahead
+					this.getCharactersInRegex(() => {
+						this.updateRegexIndex(1, () => {
+							callback();
+						})
 					})
 				})
-			}
+			} else if (this.state.regex.charAt(this.state.regexIndex+1) === '*') {
+				this.splat(callback);
+			} 
+
 		}
 	}
 
-	character() {
+	character(callback) {
+		console.log("character function");
 		if (alphabet.indexOf(this.state.nextCharacter) > -1 || this.state.nextCharacter === null) { // if the next character in the regex is in the alphabet or null
-			this.createNewTransition('new') // add a transition to a new state on the current character
+			console.log("i like pooping so much");
+			this.createNewTransition('new'); // add a transition to a new state on the current character
 			this.updateTransitionsIndex(() => { // update the transitions index
 				this.getCharactersInRegex(() => { 	// get the new characters in the regex
 					this.updateRegexIndex(1, () => { // increase the regex index by 1		
 						console.log("finished updating regex in character function");
-						this.convertToNFA() // keep calling the function until the regex is converted into an NFA
+						callback() // keep calling the function until the regex is converted into an NFA
 					});
 				}); 
-			}); 			 			
-			
+			}); 			 				
 		} else if (this.state.nextCharacter === '*') { // if the next character in the regex is the splat symbol 
-			this.splat();
+			this.splat(callback);
 		} else if (this.state.nextCharacter === '(') {			
 			this.createNewTransition('new')
 			this.updateTransitionsIndex(() => {
 				this.getCharactersInRegex(() => {
 					this.updateRegexIndex(1, () => {
 						console.log(this.state.curCharacter);
-						this.grouping();
+						this.grouping(callback);
 					});
 				});	
 			});
 		} else if (this.state.nextCharacter === ")") {
-			this.getCharactersInRegex(() => {
-				this.updateRegexIndex(1, () => {
-					this.grouping();
-				})
-			})
+			this.grouping(callback);
 
-		} else {
-			this.updateRegexIndex(1);
+		} else if (this.state.nextCharacter === "|") {
+			this.alternator(callback);
 		}	
 	}
 
-	splat() {
+	splat(callback) {
+		console.log("splat");
 		this.createNewTransition('feedback') // add a transition to the current state on the current character
 		this.getCharactersInRegex(() => {  // get the new characters in the regex
-			this.updateRegexIndex(2, () => { // increase the regex index by 2
-				this.convertToNFA();
+			this.updateRegexIndex(2, () => { // increase the regex index by 2 because the next character is currently "*"
+				callback();
 			});
 		});						
 	}
@@ -191,8 +209,16 @@ class Regex extends Component {
 		
 	}
 
-	alternator() {
-
+	alternator(callback) {
+		console.log("alternator");
+		this.createNewTransition("new");
+		this.updateRegexIndex(1, () => { // need to update the regex index first
+			this.getCharactersInRegex(() => {
+				this.updateRegexIndex(1, () => {
+					callback();
+				});
+			});
+		});
 	}
 
 	period() {
@@ -207,12 +233,14 @@ class Regex extends Component {
 	// gets called when the input changes
 	onInputChange(event) {
 		this.setState({regex: event.target.value});
+		console.log(transitions);
 	}
 
 	// gets called when the form is submitted
 	onFormSubmit(event) {
+		console.log(transitions);
 		event.preventDefault(); // so the browser doesn't submit the form
-		if(this.validate() === false) {
+		if(this.validate() === false) {			
 			this.setState({error: ''}, () => {
 				this.getCharactersInRegex(() => {
 					this.updateRegexIndex(1, () => {
