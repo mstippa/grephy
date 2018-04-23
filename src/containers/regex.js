@@ -95,6 +95,7 @@ class Regex extends Component {
 	// reads the regex and calls the correct production based on the current character 
 	convertToNFA() {
 		console.log("NFA");
+		console.log(this.state.curCharacter);
 		regex = this.state.regex;
 		// console.log(this.state.indexInRegex + "this is the index in the regex");
 		if (this.state.indexInRegex > regex.length) { // if no more characters to read
@@ -146,7 +147,9 @@ class Regex extends Component {
 				});
 			}); 
 		} else { // then the next character is ")"	
-			if (alphabet.indexOf(this.state.regex.charAt(this.state.regexIndex+1)) > -1 || this.state.regexIndex+1 == regex.length) {
+		console.log(this.state.indexInRegex);
+		console.log(regex.length);
+			if (alphabet.indexOf(this.state.regex.charAt(this.state.indexInRegex+1)) > -1 || this.state.indexInRegex+1 == regex.length) { // need to look two symbols ahead
 				this.createNewTransition('new');
 				this.updateRegexIndex(1, () => { // need to update the regex first because we were looking to symbols ahead
 					this.getCharactersInRegex(() => {
