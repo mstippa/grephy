@@ -38,19 +38,38 @@ class Regex extends Component {
 		console.log(curCharacter);
 		var stateTransitions = {}; // create an object that will hold all the transitions on a state
 		if (transitionType == 'new') { // if the transition is to a new state
-			stateTransitions[curCharacter] = [this.state.indexInTransitions+1]; // creating a transition to a new state
+			if (transitions[this.state.indexInTransitions]) {
+				transitions[this.state.indexInTransitions][curCharacter] = [this.state.indexInTransitions+1] // creating a transition to a new state
+			} else {
+				stateTransitions[curCharacter] = [this.state.indexInTransitions+1]; // creating a transition to a new state
+				transitions[this.state.indexInTransitions] = stateTransitions; // add the state object to the transitions table
+			}			 
 			console.log("transition created");
 		} else { // if the transition needs to loopback
-			if (groupingIndex === -1) { // if the transition loops back to the current state
-				stateTransitions[curCharacter] = [this.state.indexInTransitions] // creating a transition to the current state
+			if (transitions[this.state.indexInTransitions]) { // if there is already transitions on the state
+				if (groupingIndex === -1) { // if the transition loops back to the current state
+					transitions[this.state.indexInTransitions][curCharacter] = [this.state.indexInTransitions]; // creating a transition to the current state
+					// stateTransitions[curCharacter] = [this.state.indexInTransitions] 
+				} else {
+					transitions[this.state.indexInTransitions][curCharacter] = [groupingIndex] // creating a transition back to a previous state
+					// stateTransitions[curCharacter] = [groupingIndex]; 
+					groupingIndex = -1;
+				}
 			} else {
-				stateTransitions[curCharacter] = [groupingIndex]; // creating a transition back to a previous state
-				groupingIndex = -1;
-			}			
+				if (groupingIndex === -1) {
+					stateTransitions[curCharacter] = [this.state.indexInTransitions];
+				} else {
+					stateTransitions[curCharacter] = [groupingIndex];
+					groupingIndex = -1;
+				}
+
+				transitions[this.state.indexInTransitions] = stateTransitions;
+			}
+						
 		}	
-		transitions[this.state.indexInTransitions] = stateTransitions; // add the state object to the transitions table 
+		
 		console.log(stateTransitions);
-		console.log(transitions);
+		console.log(transitions); 
 	}
 
 	// updates the regex index depending on the increment argument
@@ -201,11 +220,13 @@ class Regex extends Component {
 	splat(callback) {
 		console.log("splat");
 		this.createNewTransition('feedback') // add a transition to the current state on the current character
-		this.getCharactersInRegex(() => {  // get the new characters in the regex
-			this.updateRegexIndex(2, () => { // increase the regex index by 2 because the next character is currently "*"
-				callback();
+		this.updateRegexIndex(1, () => { // need to update the index first
+			this.getCharactersInRegex(() => {
+				this.updateRegexIndex(1, () => {
+					callback();
+				});
 			});
-		});						
+		});					
 	}
 
 	carrot() {
@@ -236,7 +257,6 @@ class Regex extends Component {
 	// gets called when the input changes
 	onInputChange(event) {
 		this.setState({regex: event.target.value});
-		console.log(transitions);
 	}
 
 	// gets called when the form is submitted
