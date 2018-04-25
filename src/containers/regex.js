@@ -81,6 +81,7 @@ class Regex extends Component {
 		});
 	}
 
+	// updates the transition index
 	updateTransitionsIndex(callback) {
 		console.log("updating transitions index");
 		this.setState({indexInTransitions: this.state.indexInTransitions+1}, () => {
@@ -89,6 +90,7 @@ class Regex extends Component {
 		});
 	}
 
+	// updates this.state.curCharacter and this.state.nextCharacter using this.state.indexInRegex
 	getCharactersInRegex(callback) {
 		console.log("getting characters");
 		var regexIndex = this.state.indexInRegex;
@@ -136,14 +138,21 @@ class Regex extends Component {
 					break;
 				case '*':
 					this.splat();
+					break;
 				case '|':
-					this.alternator();
+					this.alternator(() => {
+						this.convertToNFA();
+					});
+					break;
 				case '.':
 					this.period();
+					break;
 				case '^':
 					this.carrot();
+					break;
 				case '$':
 					this.eof();
+					break;
 				default:
 					this.character(() => {
 						this.convertToNFA();
@@ -174,9 +183,9 @@ class Regex extends Component {
 					this.getCharactersInRegex(() => {
 						this.updateRegexIndex(1, () => {
 							callback();
-						})
-					})
-				})
+						});
+					});
+				});
 			} else if (this.state.regex.charAt(this.state.regexIndex+1) === '*') {
 				this.splat(callback);
 			} 
@@ -235,14 +244,22 @@ class Regex extends Component {
 
 	alternator(callback) {
 		console.log("alternator");
-		this.createNewTransition("new");
-		this.updateRegexIndex(1, () => { // need to update the regex index first
+		if (this.state.curCharacter === "|") { // if the current character is "|"
 			this.getCharactersInRegex(() => {
-				this.updateRegexIndex(1, () => {
+				this.updateRegexIndex(1,() => {
 					callback();
 				});
 			});
-		});
+		} else { // if the next character is "|"
+			this.createNewTransition("new");
+			this.updateRegexIndex(1, () => { // need to update the regex index first
+				this.getCharactersInRegex(() => {
+					this.updateRegexIndex(1, () => {
+						callback();
+					});
+				});
+			});
+		}				
 	}
 
 	period() {
