@@ -6,7 +6,7 @@ import { connect } from 'react-redux';
 var transitions = [];
 var regex = '';
 var groupingIndex = -1; // the index that keeps track of current state when there is ()*
-const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '; // all the acceptable characters
+const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.?<>!@#%&+={[]} '; // all the acceptable characters
 
 class Regex extends Component {
 	constructor(props) {
@@ -14,12 +14,14 @@ class Regex extends Component {
 
 		// this component's state
 		this.state = { 
-			regex: '',
-			error: '',
+			regex: '', // holds the regex string
+			error: '', 
 			indexInRegex: 0, // the current index in the regex
 			indexInTransitions: 0, // the index into the transitions array, represents state			
 			curCharacter: '', // the current character in the regex
 			nextCharacter: '', // the next character in the regex
+			carrot: false, // if the regex contains a carrot
+			eof: false // if the regex contains a "$" 
 		};  
 		this.onFormSubmit = this.onFormSubmit.bind(this);
 		this.onInputChange = this.onInputChange.bind(this);
@@ -94,7 +96,6 @@ class Regex extends Component {
 	getCharactersInRegex(callback) {
 		console.log("getting characters");
 		var regexIndex = this.state.indexInRegex;
-		regex = this.state.regex;
 		if (regexIndex != regex.length) {  // to prevent an "array out of bounds" error				
 			this.setState({curCharacter: this.state.regex.charAt(this.state.indexInRegex)}, () => { // changing the current character in the regex and passing in a callback function		
 				if (regexIndex+1 !== regex.length) { // if the next character is not null					
@@ -120,7 +121,6 @@ class Regex extends Component {
 		if (this.state.error !== "") { // if the regex was incorrect
 			return "incomplete"
 		} else {
-			regex = this.state.regex;
 			// console.log(this.state.indexInRegex + "this is the index in the regex");
 			if (this.state.indexInRegex > regex.length) { // if no more characters to read
 				console.log(transitions);
@@ -150,7 +150,9 @@ class Regex extends Component {
 						});
 						break;
 					case '.':
-						this.period();
+						this.period(() => {
+							this.convertToNFA();
+						});
 						break;
 					case '^':
 						this.carrot(() => {
@@ -158,7 +160,9 @@ class Regex extends Component {
 						});
 						break;
 					case '$':
-						this.eof();
+						this.eof(() => {
+							this.convertToNFA();
+						});
 						break;
 					default:
 						this.character(() => {
@@ -250,7 +254,9 @@ class Regex extends Component {
 		if (this.state.regex.charAt(0) === "^") { // if the first character in the regex is the carrot
 			this.getCharactersInRegex(() => {
 				this.updateRegexIndex(1, () => {
-					callback();
+					this.setState({carrot: true}, () => {
+						callback();
+					});						
 				});
 			});
 		} else { // if the first character in the regex is not the carrot return an error
@@ -281,14 +287,29 @@ class Regex extends Component {
 		}				
 	}
 
-	period() {
-
+	period(callback) {
+		this.createNewTransition("new");
+		this.getCharactersInRegex(() => {
+			this.updateRegexIndex(1, () => {
+				callback();
+			});
+		});
 	}
 
-	eof() {
-
+	eof(callback) {
+		var lastIndex = regex.length -1;
+		if (this.state.regex.charAt(lastIndex) !== "$") {
+			this.setState({error: 'Invalid Regex'}, () => {
+				callback;
+			});
+		} else {
+			this.setState({eof: true}, () => {
+				callback();
+			});
+		}
 	}
 
+	// ********************************************************8 //
 
 	// gets called when the input changes
 	onInputChange(event) {
@@ -297,8 +318,8 @@ class Regex extends Component {
 
 	// gets called when the form is submitted
 	onFormSubmit(event) {
-		console.log(transitions);
 		event.preventDefault(); // so the browser doesn't submit the form
+		regex = this.state.regex; // assign the regex to a global variable
 		if(this.validate() === false) {			
 			this.setState({error: ''}, () => {
 				this.getCharactersInRegex(() => {
