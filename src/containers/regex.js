@@ -117,48 +117,56 @@ class Regex extends Component {
 	convertToNFA() {
 		console.log("NFA");
 		console.log(this.state.curCharacter);
-		regex = this.state.regex;
-		// console.log(this.state.indexInRegex + "this is the index in the regex");
-		if (this.state.indexInRegex > regex.length) { // if no more characters to read
-			console.log(transitions);
-		} else { 
-			
-			switch (this.state.curCharacter) {
-				case '(':
-				console.log("current character: " + this.state.curCharacter);
-					this.grouping(() => {
-						this.convertToNFA();						
-					});
-					break;
-				case ')':	
-				console.log("current character: " + this.state.curCharacter);		
-					this.grouping(() => {
-						this.convertToNFA();
-					});
-					break;
-				case '*':
-					this.splat();
-					break;
-				case '|':
-					this.alternator(() => {
-						this.convertToNFA();
-					});
-					break;
-				case '.':
-					this.period();
-					break;
-				case '^':
-					this.carrot();
-					break;
-				case '$':
-					this.eof();
-					break;
-				default:
-					this.character(() => {
-						this.convertToNFA();
-					});						
-			}	
-		}
+		if (this.state.error !== "") { // if the regex was incorrect
+			return "incomplete"
+		} else {
+			regex = this.state.regex;
+			// console.log(this.state.indexInRegex + "this is the index in the regex");
+			if (this.state.indexInRegex > regex.length) { // if no more characters to read
+				console.log(transitions);
+				return "complete";
+			} else { 
+				switch (this.state.curCharacter) {
+					case '(':
+					console.log("current character: " + this.state.curCharacter);
+						this.grouping(() => {
+							this.convertToNFA();						
+						});
+						break;
+					case ')':	
+					console.log("current character: " + this.state.curCharacter);		
+						this.grouping(() => {
+							this.convertToNFA();
+						});
+						break;
+					case '*':
+						this.splat(() => {
+							this.convertToNFA();
+						});
+						break;
+					case '|':
+						this.alternator(() => {
+							this.convertToNFA();
+						});
+						break;
+					case '.':
+						this.period();
+						break;
+					case '^':
+						this.carrot(() => {
+							this.convertToNFA();
+						});
+						break;
+					case '$':
+						this.eof();
+						break;
+					default:
+						this.character(() => {
+							this.convertToNFA();
+						});						
+				}	
+			}
+		}	
 	}
 
 	// ******** Productions that get called when a specific character in regex is read ********** \\
@@ -238,7 +246,18 @@ class Regex extends Component {
 		});					
 	}
 
-	carrot() {
+	carrot(callback) {
+		if (this.state.regex.charAt(0) === "^") { // if the first character in the regex is the carrot
+			this.getCharactersInRegex(() => {
+				this.updateRegexIndex(1, () => {
+					callback();
+				});
+			});
+		} else { // if the first character in the regex is not the carrot return an error
+			this.setState({error: 'Invalid Regex'}, () => {
+				callback();
+			})
+		}
 		
 	}
 
