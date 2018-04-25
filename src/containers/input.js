@@ -1,7 +1,6 @@
 // this component represents the output of the input file that a user will call the regex on
 // it gets passed the "text" of the input file
 
-
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 
@@ -11,12 +10,18 @@ class InputBox extends Component {
 		// if user has not chosen a file yet
 		if (!this.props.inputText) {
 			return (
-				<output></output>
+				<div>
+					<h1>Input</h1>
+					<output></output>
+				</div>	
 			);
 		}
 
 		return (
-			<output>{this.props.inputText}</output>
+			<div>
+				<h1>Input</h1>
+				<output>{this.props.inputText}</output>
+			</div>	
 		);
 	}
 }
