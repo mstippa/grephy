@@ -1,3 +1,6 @@
+// this component is the file upload form
+// it sends the file to the fileUpload action creator
+
 import React, { Component } from 'react';
 import { fileUpload } from '../actions';
 import { connect } from 'react-redux';
@@ -12,56 +15,38 @@ class File extends Component {
 
 		this.onInputChange = this.onInputChange.bind(this);
 		this.readFile = this.readFile.bind(this);
-
 	}
 
 	// gets called when the user chooses a file
 	onInputChange(event) {			
-
 		this.setState({file: event.target.files[0]}, () => {
-			this.readFile(this.state.file, () => { // call the fileUpload action creator
-				console.log("file uploaded");
-			}); 
+			this.readFile(this.state.file)
 		});
 	}
 
+	// takes in the input file from the user, reads it and calls an action creator
 	readFile(file) {
 
 		//Check File API support
-    if (window.File && window.FileList && window.FileReader) {
+	    if (window.File && window.FileList && window.FileReader) {
 
-            // var output = document.getElementById("result");
+            //Only plain text
+            // if (!file.type.match('plain')) {
 
+            var fileReader = new FileReader();
 
-                //Only plain text
-                // if (!file.type.match('plain')) {
+            fileReader.addEventListener("load", (event) => {
+                var textFile = event.target;
+                this.props.fileUpload(textFile.result); // calling the fileUpload action creator, passing in plain text
 
-                var picReader = new FileReader();
+            });
 
-                picReader.addEventListener("load", (event) => {
+            //Read the text file
+            fileReader.readAsText(file);
 
-                    var textFile = event.target;
-                    this.props.fileUpload(textFile.result); // calling the fileUpload action creator
-
-                    // var div = document.createElement("div");
-
-                    // div.innerText = textFile.result;
-
-                    // output.insertBefore(div, null);
-
-
-                });
-
-                //Read the text file
-                picReader.readAsText(file);
-
-            	// }
-
-    }
-    else {
-        console.log("Your browser does not support File API");
-    }
-
+    	} else {
+        	console.log("Your browser does not support File API");
+    	}
 	}
 
 	render() {
@@ -69,7 +54,7 @@ class File extends Component {
 			<div>
 				<form>
 					<div className="form-group">
-					    <label htmlFor="input-file">File input</label>
+					    <label htmlFor="input-file">File input (txt files only!)</label>
 					    <input 
 					    	type="file" 
 					    	className="form-control-file" 
