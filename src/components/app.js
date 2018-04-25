@@ -1,7 +1,8 @@
 import React, { Component } from 'react';
 import Regex from '../containers/regex';
 import File from '../containers/file';
-import InputBox from '../containers/input'
+import InputBox from '../containers/input';
+import OutputBox from '../containers/output';
 
 export default class App extends Component {
   render() {
@@ -14,6 +15,7 @@ export default class App extends Component {
 	    	<Regex />	
 	    	<File />
 	    	<InputBox />
+	    	<OutputBox />
 	    </div>	
     );
   }
