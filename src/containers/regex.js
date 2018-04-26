@@ -1,9 +1,15 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux'; // this function allows a created action to flow through all of the reducers 
+// action creators
+import { transitionFunction } from '../actions';
+import { carrot } from '../actions';
+import { eof } from '../actions';
+import { acceptingState } from '../actions';
 
 // an array that represents the transition functions from state to state
 // the index into the array represents a state
-var transitions = [];
+export var transitions = [];
 var regex = '';
 var groupingIndex = -1; // the index that keeps track of current state when there is ()*
 const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.?<>!@#%&+={[]} '; // all the acceptable characters
@@ -35,9 +41,7 @@ class Regex extends Component {
 	// creates a new transition
 	// transitionType is used to decide if feedback transition or transition to a new state will be created 
 	createNewTransition(transitionType) {
-		console.log("creating a new transition");
 		var curCharacter = this.state.curCharacter; // assign the current character in the regex to a variable
-		console.log(curCharacter);
 		var stateTransitions = {}; // create an object that will hold all the transitions on a state
 		if (transitionType == 'new') { // if the transition is to a new state
 			if (transitions[this.state.indexInTransitions]) {
@@ -46,9 +50,8 @@ class Regex extends Component {
 				stateTransitions[curCharacter] = [this.state.indexInTransitions+1]; // creating a transition to a new state
 				transitions[this.state.indexInTransitions] = stateTransitions; // add the state object to the transitions table
 			}			 
-			console.log("transition created");
 		} else { // if the transition needs to loopback
-			if (transitions[this.state.indexInTransitions]) { // if there is already transitions on the state
+			if (transitions[this.state.indexInTransitions]) { // if there is already transitions on the current state
 				if (groupingIndex === -1) { // if the transition loops back to the current state
 					transitions[this.state.indexInTransitions][curCharacter] = [this.state.indexInTransitions]; // creating a transition to the current state
 					// stateTransitions[curCharacter] = [this.state.indexInTransitions] 
@@ -57,7 +60,7 @@ class Regex extends Component {
 					// stateTransitions[curCharacter] = [groupingIndex]; 
 					groupingIndex = -1;
 				}
-			} else {
+			} else { // if there are no transitions on the current state
 				if (groupingIndex === -1) {
 					stateTransitions[curCharacter] = [this.state.indexInTransitions];
 				} else {
@@ -66,41 +69,31 @@ class Regex extends Component {
 				}
 
 				transitions[this.state.indexInTransitions] = stateTransitions;
-			}
-						
+			}				
 		}	
-		
-		console.log(stateTransitions);
-		console.log(transitions); 
 	}
 
 	// updates the regex index depending on the increment argument
 	updateRegexIndex(increment, callback) {
-		console.log("updating regex index");
 		this.setState({indexInRegex: this.state.indexInRegex + increment}, () => {
-			console.log("indexInRegex: " + this.state.indexInRegex);
 			callback();		
 		});
 	}
 
 	// updates the transition index
 	updateTransitionsIndex(callback) {
-		console.log("updating transitions index");
 		this.setState({indexInTransitions: this.state.indexInTransitions+1}, () => {
-			console.log("transitions index updated");
 			callback();
 		});
 	}
 
 	// updates this.state.curCharacter and this.state.nextCharacter using this.state.indexInRegex
 	getCharactersInRegex(callback) {
-		console.log("getting characters");
 		var regexIndex = this.state.indexInRegex;
 		if (regexIndex != regex.length) {  // to prevent an "array out of bounds" error				
 			this.setState({curCharacter: this.state.regex.charAt(this.state.indexInRegex)}, () => { // changing the current character in the regex and passing in a callback function		
 				if (regexIndex+1 !== regex.length) { // if the next character is not null					
 					this.setState({nextCharacter: this.state.regex.charAt(this.state.indexInRegex+1)}, () => { // changing the next character in the regex and passing in a callback function
-						console.log("characters got");
 						callback();
 					});
 				} else { // if the next character is null
@@ -116,15 +109,15 @@ class Regex extends Component {
 
 	// reads the regex and calls the correct production based on the current character 
 	convertToNFA() {
-		console.log("NFA");
-		console.log(this.state.curCharacter);
-		if (this.state.error !== "") { // if the regex was incorrect
-			return "incomplete"
+		if (this.state.error !== "") { // if there is an error in the regex
+			return false;
 		} else {
 			// console.log(this.state.indexInRegex + "this is the index in the regex");
 			if (this.state.indexInRegex > regex.length) { // if no more characters to read
-				console.log(transitions);
-				return "complete";
+				this.props.carrot(this.state.carrot); // calling the carrot action creator
+				this.props.eof(this.state.eof); // calling the eof action creator
+				this.props.acceptingState(this.state.indexInTransitions); // calling the acceptingState action creator
+				this.props.transitionFunction(transitions); // calling the transitionFunction action creator, passing in the transitions array
 			} else { 
 				switch (this.state.curCharacter) {
 					case '(':
@@ -176,7 +169,6 @@ class Regex extends Component {
 	// ******** Productions that get called when a specific character in regex is read ********** \\
 
 	grouping(callback) {
-		console.log("grouping");
 		if (this.state.curCharacter === '(') {
 			groupingIndex = this.state.indexInTransitions; // need to remember the current state in case we'll need to loopback to it
 			console.log("groupingIndex: " + groupingIndex);
@@ -187,8 +179,6 @@ class Regex extends Component {
 				});
 			}); 
 		} else { // then the next character is ")"	
-		console.log(this.state.indexInRegex);
-		console.log(regex.length);
 			if (alphabet.indexOf(this.state.regex.charAt(this.state.indexInRegex+1)) > -1 || this.state.indexInRegex+1 == regex.length) { // need to look two symbols ahead
 				this.createNewTransition('new');
 				this.updateRegexIndex(1, () => { // need to update the regex first because we were looking to symbols ahead
@@ -206,14 +196,12 @@ class Regex extends Component {
 	}
 
 	character(callback) {
-		console.log("character function");
 		if (alphabet.indexOf(this.state.nextCharacter) > -1 || this.state.nextCharacter === null) { // if the next character in the regex is in the alphabet or null
 			console.log("i like pooping so much");
 			this.createNewTransition('new'); // add a transition to a new state on the current character
 			this.updateTransitionsIndex(() => { // update the transitions index
 				this.getCharactersInRegex(() => { 	// get the new characters in the regex
 					this.updateRegexIndex(1, () => { // increase the regex index by 1		
-						console.log("finished updating regex in character function");
 						callback() // keep calling the function until the regex is converted into an NFA
 					});
 				}); 
@@ -239,7 +227,6 @@ class Regex extends Component {
 	}
 
 	splat(callback) {
-		console.log("splat");
 		this.createNewTransition('feedback') // add a transition to the current state on the current character
 		this.updateRegexIndex(1, () => { // need to update the index first
 			this.getCharactersInRegex(() => {
@@ -268,7 +255,6 @@ class Regex extends Component {
 	}
 
 	alternator(callback) {
-		console.log("alternator");
 		if (this.state.curCharacter === "|") { // if the current character is "|"
 			this.getCharactersInRegex(() => {
 				this.updateRegexIndex(1,() => {
@@ -319,19 +305,22 @@ class Regex extends Component {
 	// gets called when the form is submitted
 	onFormSubmit(event) {
 		event.preventDefault(); // so the browser doesn't submit the form
-		regex = this.state.regex; // assign the regex to a global variable
-		if(this.validate() === false) {			
-			this.setState({error: ''}, () => {
-				this.getCharactersInRegex(() => {
-					this.updateRegexIndex(1, () => {
-						this.convertToNFA();
-					})					
-				});			
-			});
+		if (this.props.inputText !== "") {
+			regex = this.state.regex; // assign the regex to a global variable
+			if(this.validate() === false) {			
+				this.setState({error: ''}, () => {
+					this.getCharactersInRegex(() => {
+						this.updateRegexIndex(1, () => {
+							this.convertToNFA();							
+						});					
+					});			
+				});
+			} else {
+				this.setState({error: 'Enter a regular expression'});
+			}
 		} else {
-			this.setState({error: 'Enter a regular expression'});
+			this.setState({error: 'Upload a file'});
 		}
-		// this.setState({regex: ''}); 
 	}
 
 	render() {
@@ -350,6 +339,7 @@ class Regex extends Component {
 						<button className="btn btn-secondary">Submit</button>
 					</span>
 				</form>
+				<br></br>
 			</div>
 		);	
 	}	
@@ -364,5 +354,15 @@ function mapStateToProps(state) {
 	}
 }
 
-export default connect(mapStateToProps)(Regex);
+// this maps the action creators to this container
+function mapDispatchToState(dispatch) {
+	return bindActionCreators({ // 
+		carrot: carrot,
+		eof: eof,
+		acceptingState: acceptingState,
+		transitionFunction: transitionFunction
+	}, dispatch);
+}
+
+export default connect(mapStateToProps, mapDispatchToState)(Regex);
 
