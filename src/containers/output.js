@@ -4,25 +4,23 @@
 
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import transitions from './regex.js';
 
 class OutputBox extends Component {
 	render() {
-		console.log(this.props.transitionFunction);
-		// if user has not chosen a file yet
-		if (this.props.transitionFunction === null) {
+
+		if (this.props.regexData === null) {
 			return (
-				<div>
-					<h1>Output</h1>
-					<output>Poop</output>
-				</div>	
+			<div>
+				<h1>Output</h1>
+				<output>Penis</output>
+			</div>	
 			);
-		}
+		}	
 
 		return (
 			<div>
 				<h1>Output</h1>
-				<output>{this.props.transitionFunction}</output>
+				<output>Poop</output>
 			</div>	
 		);
 	}
@@ -31,10 +29,13 @@ class OutputBox extends Component {
 // this maps application state to this component
 // index.js in the reducers folder passes the state object along
 function mapStateToProps(state) {
-	if (state.transitionFunction === null) return {transitionFunction: null}
+	if (state.regexData === null) return {regexData: null}
 	return {
-		inputText: state.input,
-		transitionFunction: state.transitionFunction
+		file: state.input, // the input
+		transitionFunction: state.regexData.transitionFunction, // the transition function
+		carrot: state.regexData.carrot, // true if the regex contains a carrot
+		eof: state.regexData.eof, // true if the regex contains a $
+		acceptingState: state.regexData.acceptingState // that accepting state
 	}
 }
 
