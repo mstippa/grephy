@@ -2,17 +2,17 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux'; // this function allows a created action to flow through all of the reducers 
 // action creators
-import { transitionFunction } from '../actions';
-import { carrot } from '../actions';
-import { eof } from '../actions';
-import { acceptingState } from '../actions';
+import { acceptedLinesAction } from '../actions';
 
-// an array that represents the transition functions from state to state
+// an array that represents the transition function for the NFA
 // the index into the array represents a state
-export var transitions = [];
+var transitions = [];
+// array that holds the transition function for the DFA
+var transitionsDFA = [];
+var acceptedLines = []; // holds the accepted lines of the input file
 var regex = '';
 var groupingIndex = -1; // the index that keeps track of current state when there is ()*
-const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.?<>!@#%&+={[]} '; // all the acceptable characters
+const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.?<>!@#%&+={[]}-_ '; // all the acceptable characters
 
 class Regex extends Component {
 	constructor(props) {
@@ -27,7 +27,11 @@ class Regex extends Component {
 			curCharacter: '', // the current character in the regex
 			nextCharacter: '', // the next character in the regex
 			carrot: false, // if the regex contains a carrot
-			eof: false // if the regex contains a "$" 
+			eof: false, // if the regex contains a "$"
+			curIndex: 0, // the current index in the input file
+			startIndex: 0, //  the starting index in a line in the input file
+			acceptedLinesIndex: 0, // the index into the acceptedLines array
+			acceptingState: 0 // the accepting state
 		};  
 		this.onFormSubmit = this.onFormSubmit.bind(this);
 		this.onInputChange = this.onInputChange.bind(this);
@@ -53,18 +57,18 @@ class Regex extends Component {
 		} else { // if the transition needs to loopback
 			if (transitions[this.state.indexInTransitions]) { // if there is already transitions on the current state
 				if (groupingIndex === -1) { // if the transition loops back to the current state
-					transitions[this.state.indexInTransitions][curCharacter] = [this.state.indexInTransitions]; // creating a transition to the current state
-					// stateTransitions[curCharacter] = [this.state.indexInTransitions] 
+					transitions[this.state.indexInTransitions][curCharacter] = [this.state.indexInTransitions];
+					// transitions[this.state.indexInTransitions][curCharacter] = [this.state.indexInTransitions, this.state.indexInTransitions+1]; // creating a transition to the current state and a new state because we're generating an NFA first
 				} else {
 					transitions[this.state.indexInTransitions][curCharacter] = [groupingIndex] // creating a transition back to a previous state
-					// stateTransitions[curCharacter] = [groupingIndex]; 
 					groupingIndex = -1;
 				}
 			} else { // if there are no transitions on the current state
-				if (groupingIndex === -1) {
+				if (groupingIndex === -1) { // if the transition loops back to the current state
 					stateTransitions[curCharacter] = [this.state.indexInTransitions];
+					// stateTransitions[curCharacter] = [this.state.indexInTransitions, this.state.indexInTransitions+1];
 				} else {
-					stateTransitions[curCharacter] = [groupingIndex];
+					stateTransitions[curCharacter] = [groupingIndex]; // creating a transition back to a previous state
 					groupingIndex = -1;
 				}
 
@@ -107,6 +111,20 @@ class Regex extends Component {
 		}		
 	}
 
+	convertToDFA(callback) {
+		callback();
+		// var i = 0; // index in the transitions array
+		// var character; // is the key of the object at the index in transitions
+		// for (var i = 0; i < transitions.length; i++) {
+		// 	for (character in transitions[i]) {
+		// 		if (transitions[character].length > 1) { // if there are multiple transitions for a character on a state
+		// 			transitions[character].splice(1,1); // remove the transition from the array
+		// 		} 
+		// 	}
+		// }
+
+	}
+
 	// reads the regex and calls the correct production based on the current character 
 	convertToNFA() {
 		if (this.state.error !== "") { // if there is an error in the regex
@@ -114,10 +132,16 @@ class Regex extends Component {
 		} else {
 			// console.log(this.state.indexInRegex + "this is the index in the regex");
 			if (this.state.indexInRegex > regex.length) { // if no more characters to read
-				this.props.carrot(this.state.carrot); // calling the carrot action creator
-				this.props.eof(this.state.eof); // calling the eof action creator
-				this.props.acceptingState(this.state.indexInTransitions); // calling the acceptingState action creator
-				this.props.transitionFunction(transitions); // calling the transitionFunction action creator, passing in the transitions array
+				this.convertToDFA(() => {
+					this.setState({acceptingState: this.state.indexInTransitions}, () => {
+						this.testFile();
+					});					
+					// this.props.carrot(this.state.carrot); // calling the carrot action creator
+					// this.props.eof(this.state.eof); // calling the eof action creator
+					// this.props.acceptingState(this.state.indexInTransitions); // calling the acceptingState action creator
+					// this.props.transitionFunction(transitions); // calling the transitionFunction action creator, passing in the transitions array	
+				});
+				
 			} else { 
 				switch (this.state.curCharacter) {
 					case '(':
@@ -197,7 +221,6 @@ class Regex extends Component {
 
 	character(callback) {
 		if (alphabet.indexOf(this.state.nextCharacter) > -1 || this.state.nextCharacter === null) { // if the next character in the regex is in the alphabet or null
-			console.log("i like pooping so much");
 			this.createNewTransition('new'); // add a transition to a new state on the current character
 			this.updateTransitionsIndex(() => { // update the transitions index
 				this.getCharactersInRegex(() => { 	// get the new characters in the regex
@@ -295,7 +318,84 @@ class Regex extends Component {
 		}
 	}
 
-	// ********************************************************8 //
+	// ******************************************************** //
+
+	//***** DFA COMPUTATION ************* //
+
+	// tests the DFA on all lines of the file
+	testFile() {
+		console.log(`test file currentIndex: ${this.state.curIndex}`);
+		if (this.state.curIndex === this.props.inputText.length) { // if we have gotten to the end of the input file
+			this.props.acceptedLinesAction(acceptedLines); // call the acceptedLines action creator and pass in the acceptedLines array
+		} else {
+			this.setState({startIndex: this.state.curIndex}, () => {
+				this.testLine(0) // test the line starting at state 0
+			});			
+		}
+	}
+
+	// tests a line for acceptance 
+	// takes in the current state which is the index in the transitionFunction and this.testFile as the callback function
+	testLine(state) {	
+		console.log("testLine");
+		console.log(`state ${state}`);
+		console.log(`accepting state ${this.state.acceptingState}`);	
+		console.log(state == this.state.acceptingState);
+		if (state == this.state.acceptingState) { // if we are in an accepting state
+			this.findBreak(() => { // move to the end of the line
+				acceptedLines[this.state.acceptedLinesIndex] = this.props.inputText.substr(this.state.startIndex, this.state.curIndex); // add accpted lines in the file to the accepted lines array
+				this.setState({acceptedLinesIndex: this.state.acceptedLinesIndex+1}, () => {
+					this.setState({curIndex: this.state.curIndex+1}, () => {
+						this.testFile();
+					});
+				});				
+			}); 			
+		} else {
+			var curChar = this.props.inputText[this.state.curIndex];
+			if (curChar === "\n") { // if we have gotten to the end of a line, which means that no substring matches were found on the line
+				this.setState({curIndex: this.state.curIndex+1},  () => {
+					this.testFile();
+				});
+			} else {
+				if (transitions[state][curChar]) { // if there is a transition on the current character from the current state
+					console.log("there is a transition");
+					this.setState({curIndex: this.state.curIndex+1}, () => { // update the current index
+						this.testLine(transitions[state][curChar]); // recursively call this.testLine on the new state
+					});					
+				} else { // if there is no transition 
+					console.log("there is not a transition")
+					this.setState({curIndex: this.state.curIndex+1}, () => { // update the current index
+						this.testLine(0); // go back to the starting state
+					});
+				}
+			}
+		}
+	}
+
+	// finds the next line break in the file
+	findBreak(callback) {
+		console.log(`findBreak`);
+		var i = this.state.curIndex;
+		var curChar;
+		while ( i < this.props.inputText.length) {
+			curChar = this.props.inputText[i];
+			console.log(`${curChar}`);
+			if (curChar === "\n") { // if we found the end of the line
+				this.setState({curIndex: i}, () => {
+					console.log("found a break line");
+					callback();
+				});
+				break;
+			} 
+			i++;
+		}
+		// if here then we have gotten to the end of the file
+		this.setState({curIndex: i-1}, () => {
+			callback();
+		})
+	}
+
+	// ******************************************************** //
 
 	// gets called when the input changes
 	onInputChange(event) {
@@ -356,11 +456,12 @@ function mapStateToProps(state) {
 
 // this maps the action creators to this container
 function mapDispatchToState(dispatch) {
-	return bindActionCreators({ // 
-		carrot: carrot,
-		eof: eof,
-		acceptingState: acceptingState,
-		transitionFunction: transitionFunction
+	return bindActionCreators({ 
+		acceptedLinesAction: acceptedLinesAction
+		// carrot: carrot,
+		// eof: eof,
+		// acceptingState: acceptingState,
+		// transitionFunction: transitionFunction
 	}, dispatch);
 }
 
