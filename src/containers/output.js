@@ -1,41 +1,56 @@
-// this component does the DFA computation on the input file and displays the accepted lines
-// it gets passed the "text" of the input file and the transitions array from regex.js
+// this component displays the accepted lines
+// it gets passed the acceptedLines application state which is an array that contains the accepted lines of the input file
 
 
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 
 class OutputBox extends Component {
-	render() {
+	constructor(props) {
+		super(props);
+		this.state = {
+			startIndex: 0, // the starting index of a line in the file
+			curIndex: 0 // the current index in the file
+		}
+	}
 
-		if (this.props.regexData === null) {
+	renderLines() {
+		return this.props.acceptedLines.map((line) => {
+			return (
+				<p key={line}>
+					{line}
+				</p>
+			);
+		});
+	}
+
+	render() {
+		if (this.props.acceptedLines === null) { // if user hasn't submitted the form yet
 			return (
 			<div>
 				<h1>Output</h1>
-				<output>Penis</output>
+				<output>
+					<p>LaLaLa</p>
+				</output>
+			</div>	
+			);
+		} else {
+			return (
+			<div>
+				<h1>Output</h1>
+				<output>{this.renderLines()}</output>
 			</div>	
 			);
 		}	
-
-		return (
-			<div>
-				<h1>Output</h1>
-				<output>Poop</output>
-			</div>	
-		);
 	}
 }
 
 // this maps application state to this component
 // index.js in the reducers folder passes the state object along
 function mapStateToProps(state) {
-	if (state.regexData === null) return {regexData: null}
+	if (state.acceptedLines === null) return {acceptedLines: null}
 	return {
-		file: state.input, // the input
-		transitionFunction: state.regexData.transitionFunction, // the transition function
-		carrot: state.regexData.carrot, // true if the regex contains a carrot
-		eof: state.regexData.eof, // true if the regex contains a $
-		acceptingState: state.regexData.acceptingState // that accepting state
+		acceptedLines: state.acceptedLines // array that holds the accepted lines
 	}
 }
 
