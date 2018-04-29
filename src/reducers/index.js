@@ -4,7 +4,7 @@ import OutputBoxReducer from './reducer_output_box';
 
 const rootReducer = combineReducers({
 	input: InputBoxReducer,
-	regexData: OutputBoxReducer
+	acceptedLines : OutputBoxReducer
 });
 
 export default rootReducer;
