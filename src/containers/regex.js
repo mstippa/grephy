@@ -195,23 +195,23 @@ class Regex extends Component {
 	grouping(callback) {
 		if (this.state.curCharacter === '(') {
 			groupingIndex = this.state.indexInTransitions; // need to remember the current state in case we'll need to loopback to it
-			console.log("groupingIndex: " + groupingIndex);
 			this.getCharactersInRegex(() => { 	// get the new characters in the regex
 				this.updateRegexIndex(1, () => { // increase the regex index by 1	
-					console.log("calling nfa");	
 					callback(); // keep calling the function until the regex is converted into an NFA
 				});
 			}); 
 		} else { // then the next character is ")"	
 			if (alphabet.indexOf(this.state.regex.charAt(this.state.indexInRegex+1)) > -1 || this.state.indexInRegex+1 == regex.length) { // need to look two symbols ahead
 				this.createNewTransition('new');
-				this.updateRegexIndex(1, () => { // need to update the regex first because we were looking to symbols ahead
-					this.getCharactersInRegex(() => {
-						this.updateRegexIndex(1, () => {
-							callback();
+				this.updateTransitionsIndex(() => {
+					this.updateRegexIndex(1, () => { // need to update the regex first because we were looking to symbols ahead
+						this.getCharactersInRegex(() => {
+							this.updateRegexIndex(1, () => {
+								callback();
+							});
 						});
 					});
-				});
+				});	
 			} else if (this.state.regex.charAt(this.state.regexIndex+1) === '*') {
 				this.splat(callback);
 			} 
@@ -236,7 +236,7 @@ class Regex extends Component {
 			this.updateTransitionsIndex(() => {
 				this.getCharactersInRegex(() => {
 					this.updateRegexIndex(1, () => {
-						console.log(this.state.curCharacter);
+						console.log(this.state.indexInTransitions);
 						this.grouping(callback);
 					});
 				});	
@@ -324,8 +324,10 @@ class Regex extends Component {
 
 	// tests the DFA on all lines of the file
 	testFile() {
-		console.log(`test file currentIndex: ${this.state.curIndex}`);
-		if (this.state.curIndex === this.props.inputText.length) { // if we have gotten to the end of the input file
+		console.log(transitions);
+		console.log(`test file current char: ${this.props.inputText[this.state.curIndex]}`);
+		if (this.state.curIndex >= this.props.inputText.length) { // if we have gotten to the end of the input file
+			console.log("what the hell")
 			this.props.acceptedLinesAction(acceptedLines); // call the acceptedLines action creator and pass in the acceptedLines array
 		} else {
 			this.setState({startIndex: this.state.curIndex}, () => {
@@ -340,19 +342,12 @@ class Regex extends Component {
 		console.log("testLine");
 		console.log(`state ${state}`);
 		console.log(`accepting state ${this.state.acceptingState}`);	
-		console.log(state == this.state.acceptingState);
 		if (state == this.state.acceptingState) { // if we are in an accepting state
-			this.findBreak(() => { // move to the end of the line
-				acceptedLines[this.state.acceptedLinesIndex] = this.props.inputText.substr(this.state.startIndex, this.state.curIndex); // add accpted lines in the file to the accepted lines array
-				this.setState({acceptedLinesIndex: this.state.acceptedLinesIndex+1}, () => {
-					this.setState({curIndex: this.state.curIndex+1}, () => {
-						this.testFile();
-					});
-				});				
-			}); 			
+			this.findBreak(this.state.curIndex); // move to the end of the line								
 		} else {
 			var curChar = this.props.inputText[this.state.curIndex];
-			if (curChar === "\n") { // if we have gotten to the end of a line, which means that no substring matches were found on the line
+			console.log(`curchar ${curChar}`);
+			if (curChar === "\n" || this.state.curIndex === this.props.inputText.length || curChar === undefined) { // if we have gotten to the end of a line, which means that no substring matches were found on the line
 				this.setState({curIndex: this.state.curIndex+1},  () => {
 					this.testFile();
 				});
@@ -366,33 +361,38 @@ class Regex extends Component {
 					console.log("there is not a transition")
 					this.setState({curIndex: this.state.curIndex+1}, () => { // update the current index
 						this.testLine(0); // go back to the starting state
-					});
+					}); 
 				}
 			}
-		}
+		}	
 	}
 
 	// finds the next line break in the file
-	findBreak(callback) {
+	findBreak(index) {
 		console.log(`findBreak`);
-		var i = this.state.curIndex;
-		var curChar;
-		while ( i < this.props.inputText.length) {
-			curChar = this.props.inputText[i];
-			console.log(`${curChar}`);
-			if (curChar === "\n") { // if we found the end of the line
-				this.setState({curIndex: i}, () => {
-					console.log("found a break line");
-					callback();
+		if (index === this.props.inputText.length) { // if we have gotten to the end of the file
+			console.log('end of file');
+			acceptedLines[this.state.acceptedLinesIndex] = this.props.inputText.substr(this.state.startIndex, index);
+			this.setState({curIndex: index}, () => {
+				this.testFile();
+			});			
+		} else {
+			var curChar = this.props.inputText[index];
+			console.log(curChar + ' bitch');
+			if (curChar === "\n") { // if we have found the end of a line
+				console.log(this.state.startIndex);
+				console.log(index);
+				console.log(this.props.inputText.substring(this.state.startIndex, index));
+				acceptedLines[this.state.acceptedLinesIndex] = this.props.inputText.substring(this.state.startIndex, index);
+				this.setState({acceptedLinesIndex: this.state.acceptedLinesIndex+1}, () => {
+					this.setState({curIndex: index+1}, () => {
+						this.testFile();
+					});
 				});
-				break;
-			} 
-			i++;
-		}
-		// if here then we have gotten to the end of the file
-		this.setState({curIndex: i-1}, () => {
-			callback();
-		})
+			} else {
+				this.findBreak(index+1);
+			}
+		}	
 	}
 
 	// ******************************************************** //
