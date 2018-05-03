@@ -3,6 +3,7 @@ import Regex from '../containers/regex';
 import File from '../containers/file';
 import InputBox from '../containers/input';
 import OutputBox from '../containers/output';
+import NFA from '../containers/NFA';
 
 export default class App extends Component {
   render() {
@@ -16,6 +17,7 @@ export default class App extends Component {
 	    	<File />
 	    	<InputBox />
 	    	<OutputBox />
+	    	<NFA />
 	    </div>	
     );
   }
