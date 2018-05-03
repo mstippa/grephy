@@ -12,6 +12,7 @@ export function fileUpload(file) {
 
 }
 
+// retuns the array that contains the accepted lines of the input file at each index
 export function acceptedLinesAction(acceptedLines) {
 	return {
 		type: 'ACCEPTED_LINES',
@@ -19,38 +20,11 @@ export function acceptedLinesAction(acceptedLines) {
 	}
 }
 
-// // returns an array that represents the transition function
-// // gets called from the Regex component
-// export function transitionFunction(transitions) {
-// 	return {
-// 		type: 'TRANSITIONS',
-// 		payload: transitions
-// 	}
-// }
 
-// // returns true if the regex contains a carrot
-// // called from the regex componenet
-// export function carrot(boolean) {
-// 	return {
-// 		type: 'CARROT',
-// 		payload: boolean
-// 	}
-// }
+export function submitNFA(NFA) {
+	return {
+		type: 'DFA',
+		payload: DFA
+	}
+}
 
-// // returns true if the regex contains a eof marker
-// // called from the regex component
-// export function eof(boolean) {
-// 	return {
-// 		type: 'EOF',
-// 		payload: boolean
-// 	}
-// }
-
-// // returns the accepting state which is the index into the transtion array
-// // called from the regex component
-// export function acceptingState(state) {
-// 	return {
-// 		type: 'ACCEPTING_STATE',
-// 		payload: state
-// 	}
-// }
