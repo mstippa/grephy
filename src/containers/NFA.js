@@ -26,14 +26,16 @@ class NFA extends Component {
 				for(; j < numTransitions; j++) { // loop through all transitions for a state for a specific character
 					transitions[globalCounter] = {"from" : i };
 					transitions[globalCounter]["to"] = state[transitionArray][j];
+					transitions[globalCounter]["label"] = transitionArray;
+					console.log(transitionArray);
 				}								
 				globalCounter++;
 			}
 		}
 		// add the accepting state
 		states[i] = {"id" : state[transitionArray][j-1]};
-		states[i]["label"] = `${i}`;	
-		
+		states[i]["label"] = '@';	
+
 	    var container = document.getElementById('nfa');
 
 	    // provide the data in the vis format
