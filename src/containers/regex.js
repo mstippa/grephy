@@ -4,6 +4,8 @@ import { bindActionCreators } from 'redux'; // this function allows a created ac
 // action creators
 import { acceptedLinesAction } from '../actions';
 import { submitNFA } from '../actions';
+import { submitDFA } from '../actions';
+import { submitAcceptedState } from '../actions';
 
 /* Global Variables */
 
@@ -81,10 +83,14 @@ class Regex extends Component {
 		} else if (alternatorIndex.length > 0 && this.state.prevCharacter === "(") { // a|(a...
 			state = this.state.indexInTransitions+1;
 			transitions[alternatorStartIndex][curCharacter] = [state];
+		} else if (alternatorIndex.length > 0 && groupingIndex.length > 0) { // (ab)|t..
+			state = alternatorIndex.pop();
+			transitions[groupingIndex.pop()][curCharacter] = [state];
 		} else if (alternatorIndex.length > 0) { // a|a...
 			state = alternatorIndex.pop();
 			transitions[alternatorStartIndex][curCharacter] = [state];
 		} else { // there are no transitions on the current state
+			console.log("im her bitch " + curCharacter);
 			state = this.state.indexInTransitions+1;
 			stateTransitions[curCharacter] = [state]; // creating a transition to a new state
 			transitions[this.state.indexInTransitions] = stateTransitions; // add the state object to the transitions table
@@ -98,32 +104,34 @@ class Regex extends Component {
 		var curCharacter = this.state.curCharacter; // assign the current character in the regex to a variable
 		var stateTransitions = {}; // create an object that will hold all the transitions on a state
 		if (transitions[this.state.indexInTransitions]) { // if there are already transitions on the current state
-			if (groupingIndex.length > 0) { // if the transition loops back to the current state
-				transitions[this.state.indexInTransitions][curCharacter] = [this.state.indexInTransitions];					
+			if (groupingIndex.length === 0) { // if the transition loops back to the current state
+				state = this.state.indexInTransitions;
+				transitions[this.state.indexInTransitions][curCharacter] = [state];					
 			} else {
 				if (alternatorIndex.length > 0) { // if we need to go back to the last state before the alternator
-					transitions[this.state.indexInTransitions][curCharacter] = [alternatorIndex.pop()];
+					state = alternatorIndex.pop();
+					transitions[this.state.indexInTransitions][curCharacter] = [state];
 				} else {
-					transitions[this.state.indexInTransitions][curCharacter] = [groupingIndex.pop()] // creating a transition back to a previous state
+					state = groupingIndex.pop();
+					transitions[this.state.indexInTransitions][curCharacter] = [state] // creating a transition back to a previous state
 				}
 			}
 		} else { // if there are no transitions on the current state
-			if (groupingIndex.length > 0 && this.state.nextCharacter !== ")") { // if the transition loops back to the current state
-				stateTransitions[curCharacter] = [this.state.indexInTransitions];
+			if (groupingIndex.length == 0 && this.state.nextCharacter !== ")") { // if the transition loops back to the current state
+				state = this.state.indexInTransitions;
+				stateTransitions[curCharacter] = [state];
 			} else {
 				if (alternatorIndex.length > 0) {
-					console.log("alternator index " + alternatorIndex);
-					stateTransitions[curCharacter] = [alternatorIndex.pop()];
+					state = alternatorIndex.pop();
+					stateTransitions[curCharacter] = [state];
 				} else {
-					stateTransitions[curCharacter] = [groupingIndex.pop()]; // creating a transition back to a previous state
+					state = groupingIndex.pop();
+					stateTransitions[curCharacter] = [state]; // creating a transition back to a previous state
 				}
 			}
 			transitions[this.state.indexInTransitions] = stateTransitions;
 		}
 
-		if (this.state.indexInRegex === regex.length) {
-
-		}
 	}
 
 	// updates the regex index depending on the increment argument
@@ -191,8 +199,10 @@ class Regex extends Component {
 			// console.log(this.state.indexInRegex + "this is the index in the regex");
 			if (this.state.indexInRegex > regex.length) { // if no more characters to read
 				this.setAcceptingState(state, () => {
-					this.props.submitNFA(transitions)  // calls the submitNFA action creator
+					this.props.submitAcceptedState(this.state.acceptingState); // calls the submitAcceptingState action creator
+					this.props.submitNFA(transitions);  // calls the submitNFA action creator
 					this.convertToDFA(() => {
+						this.props.submitDFA(transitions);
 						this.testFile();
 					});
 				});					 
@@ -344,23 +354,6 @@ class Regex extends Component {
 		});					
 	}
 
-	// carrot(callback) {
-	// 	if (this.state.regex.charAt(0) === "^") { // if the first character in the regex is the carrot
-	// 		this.getCharactersInRegex(() => {
-	// 			this.updateRegexIndex(1, () => {
-	// 				this.setState({carrot: true}, () => {
-	// 					callback();
-	// 				});						
-	// 			});
-	// 		});
-	// 	} else { // if the first character in the regex is not the carrot return an error
-	// 		this.setState({error: 'Invalid Regex'}, () => {
-	// 			callback();
-	// 		})
-	// 	}
-		
-	// }
-
 	alternator(callback) {
 		if (this.state.curCharacter === "|") { // if the current character is "|" - should never come here but just in case
 			this.getCharactersInRegex(() => {
@@ -406,19 +399,6 @@ class Regex extends Component {
 		});
 	}
 
-	// eof(callback) {
-	// 	var lastIndex = regex.length -1;
-	// 	if (this.state.regex.charAt(lastIndex) !== "$") {
-	// 		this.setState({error: 'Invalid Regex'}, () => {
-	// 			callback;
-	// 		});
-	// 	} else {
-	// 		this.setState({eof: true}, () => {
-	// 			callback();
-	// 		});
-	// 	}
-	// }
-
 	// ******************************************************** //
 
 	//***** DFA COMPUTATION ************* //
@@ -444,8 +424,8 @@ class Regex extends Component {
 		console.log("testLine");
 		console.log(`state ${state}`);
 		console.log(`accepting state ${this.state.acceptingState}`);
-		console.log(state === acceptingState);	
-		if (state === acceptingState) { // if we are in an accepting state
+		console.log(state == acceptingState);	
+		if (parseInt(state) == parseInt(acceptingState)) { // if we are in an accepting state
 			this.findBreak(this.state.curIndex); // move to the end of the line								
 		} else {
 			var curChar = this.props.inputText[this.state.curIndex];
@@ -561,7 +541,9 @@ function mapStateToProps(state) {
 function mapDispatchToState(dispatch) {
 	return bindActionCreators({ 
 		acceptedLinesAction: acceptedLinesAction,
-		submitNFA: submitNFA
+		submitNFA: submitNFA,
+		submitDFA: submitDFA,
+		submitAcceptedState: submitAcceptedState
 		// carrot: carrot,
 		// eof: eof,
 		// acceptingState: acceptingState,
