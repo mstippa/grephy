@@ -4,6 +4,7 @@ import File from '../containers/file';
 import InputBox from '../containers/input';
 import OutputBox from '../containers/output';
 import NFA from '../containers/NFA';
+import DFA from '../containers/DFA';
 
 export default class App extends Component {
   render() {
@@ -18,6 +19,7 @@ export default class App extends Component {
 	    	<InputBox />
 	    	<OutputBox />
 	    	<NFA />
+	    	<DFA />
 	    </div>	
     );
   }
