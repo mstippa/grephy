@@ -24,7 +24,15 @@ export function acceptedLinesAction(acceptedLines) {
 export function submitNFA(NFA) {
 	return {
 		type: 'DFA',
-		payload: DFA
+		payload: NFA
 	}
 }
 
+
+
+export function submitAcceptedState(state) {
+	return {
+		type: 'ACCEPTED_STATE',
+		payload: state
+	}
+}
