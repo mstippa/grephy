@@ -5,6 +5,8 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import vis from 'vis';
 
+var acceptingState = false;
+
 class NFA extends Component {
 
 	// creates a vis network using the NFA
@@ -16,25 +18,36 @@ class NFA extends Component {
 		var globalCounter = 0;		
 		var len = NFA.length;
 		for(; i < len; i++) { // loop through all the elements(states) in the NFA
-			states[i] = {"id": i};
-			states[i]["label"] = `${i}`;			
-			var state = NFA[i];
-			var transitionArray;
-			for (transitionArray in state) { // loop through all transitions for a state
-				var j = 0;
-				var numTransitions = state[transitionArray].length;
-				for(; j < numTransitions; j++) { // loop through all transitions for a state for a specific character
-					transitions[globalCounter] = {"from" : i };
-					transitions[globalCounter]["to"] = state[transitionArray][j];
-					transitions[globalCounter]["label"] = transitionArray;
-					console.log(transitionArray);
-				}								
-				globalCounter++;
-			}
+			console.log(i + " pppppasdfasdf");
+			if (NFA[i]) {				
+				states[i] = {"id": i};
+				states[i]["label"] = `${i}`;			
+				var state = NFA[i];
+				var transitionArray;
+				for (transitionArray in state) { // loop through all transitions for a state
+					var j = 0;
+					var numTransitions = state[transitionArray].length;
+					for(; j < numTransitions; j++) { // loop through all transitions for a state for a specific character
+						transitions[globalCounter] = {"from" : i };
+						transitions[globalCounter]["to"] = state[transitionArray][j];
+						transitions[globalCounter]["label"] = transitionArray;
+						console.log(transitionArray);
+					}								
+					globalCounter++;
+				}
+			} else {
+				console.log("I am oenis bo")
+				states[i] = {"id" : i};
+				states[i]["label"] = '@';
+				acceptingState = true;
+			}	
 		}
-		// add the accepting state
-		states[i] = {"id" : state[transitionArray][j-1]};
-		states[i]["label"] = '@';	
+		if (!acceptingState) { // if no accepting state
+			if (this.props.acceptedState !== i-1) { 
+				states[i] = {"id" : this.props.acceptedState};
+				states[i]["label"] = '@';
+			}		
+		}	
 
 	    var container = document.getElementById('nfa');
 
@@ -69,9 +82,10 @@ class NFA extends Component {
 }
 
 function mapStateToProps(state) {
-	if (state.automata === null) return {NFA: null}
+	if (state.NFA === null) return {NFA: null}
 	return {
-		NFA: state.automata
+		NFA: state.NFA,
+		acceptedState: state.acceptedState
 	}
 } 
 
