@@ -14,6 +14,7 @@ class OutputBox extends Component {
 		}
 	}
 
+	// returns a paragraph element for each element in the array 
 	renderLines() {
 		return this.props.acceptedLines.map((line) => {
 			return (
@@ -30,7 +31,6 @@ class OutputBox extends Component {
 			<div>
 				<h1>Output</h1>
 				<output>
-					<p>LaLaLa</p>
 				</output>
 			</div>	
 			);
