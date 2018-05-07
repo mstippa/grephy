@@ -512,7 +512,7 @@ class Regex extends Component {
 
 	render() {
 		return(
-			<div>
+			<div className="form-div">
 				<form className="input-group" id="input-group" onSubmit={this.onFormSubmit}>
 					<label htmlFor="input-group" id="input-label">{this.state.error}</label>
 					<input
