@@ -89,17 +89,14 @@ class Regex extends Component {
 			state = alternatorIndex.pop();
 			transitions[alternatorStartIndex][curCharacter] = [state];
 		} else { // there are no transitions on the current state
-			console.log("im her bitch " + curCharacter);
 			state = this.state.indexInTransitions+1;
 			stateTransitions[curCharacter] = [state]; // creating a transition to a new state
 			transitions[this.state.indexInTransitions] = stateTransitions; // add the state object to the transitions table
 		}
-		console.log(state);
 
 	}
 
 	createLoopbackTransition() {
-		console.log("looping nereds")
 		var curCharacter = this.state.curCharacter; // assign the current character in the regex to a variable
 		var stateTransitions = {}; // create an object that will hold all the transitions on a state
 		if (transitions[this.state.indexInTransitions] || alternatorStartIndex !== -1 ) { // if there are already transitions on the current state
@@ -192,13 +189,11 @@ class Regex extends Component {
 			} else { 
 				switch (this.state.curCharacter) {
 					case '(':
-					console.log("current character: " + this.state.curCharacter);
 						this.grouping(() => {
 							this.convertToNFA();						
 						});
 						break;
-					case ')':	
-					console.log("current character: " + this.state.curCharacter);		
+					case ')':		
 						this.grouping(() => {
 							this.convertToNFA();
 						});
@@ -230,7 +225,6 @@ class Regex extends Component {
 	// ******** Productions that get called when a specific character in regex is read ********** \\
 
 	grouping(callback) {
-		console.log("grouping");
 		if (this.state.curCharacter === '(') {
 			groupingIndex.push(this.state.indexInTransitions); // need to remember the current state in case we'll need to loopback to it or create a new transition from it
 			this.getCharactersInRegex(() => { 	// get the new characters in the regex
@@ -251,7 +245,6 @@ class Regex extends Component {
 										var stateTransitions = {};
 										state = this.state.indexInTransitions+1;
 										stateTransitions[nextChar] = [state];
-										console.log("you a bitch " + transitions[this.state.indexInTransitions][curChar])
 										transitions[transitions[this.state.indexInTransitions][curChar]] = stateTransitions;
 										this.updateTransitionsIndex(() => {
 											this.getCharactersInRegex(() => {
@@ -377,10 +370,7 @@ class Regex extends Component {
 
 	// tests the DFA on all lines of the file
 	testFile() {
-		console.log(transitions);
-		console.log(`test file current char: ${this.props.inputText[this.state.curIndex]}`);
 		if (this.state.curIndex >= this.props.inputText.length) { // if we have gotten to the end of the input file
-			console.log("what the hell")
 			this.props.acceptedLinesAction(acceptedLines); // call the acceptedLines action creator and pass in the acceptedLines array
 		} else {
 			this.setState({startIndex: this.state.curIndex}, () => {
@@ -392,28 +382,21 @@ class Regex extends Component {
 	// tests a line for acceptance 
 	// takes in the current state which is the index in the transitionFunction and this.testFile as the callback function
 	testLine(state) {	
-		var acceptingState = this.state.acceptingState;
-		console.log("testLine");
-		console.log(`state ${state}`);
-		console.log(`accepting state ${this.state.acceptingState}`);
-		console.log(state == acceptingState);	
+		var acceptingState = this.state.acceptingState;	
 		if (parseInt(state) == parseInt(acceptingState)) { // if we are in an accepting state
 			this.findBreak(this.state.curIndex); // move to the end of the line								
 		} else {
 			var curChar = this.props.inputText[this.state.curIndex];
-			console.log(`curchar in testline ${curChar}`);
 			if (curChar === "\n" || this.state.curIndex === this.props.inputText.length || curChar === undefined) { // if we have gotten to the end of a line, which means that no substring matches were found on the line
 				this.setState({curIndex: this.state.curIndex+1},  () => {
 					this.testFile();
 				});
 			} else {
 				if (transitions[state][curChar]) { // if there is a transition on the current character from the current state
-					console.log("there is a transition");
 					this.setState({curIndex: this.state.curIndex+1}, () => { // update the current index
 						this.testLine(transitions[state][curChar]); // recursively call this.testLine on the new state
 					});					
 				} else { // if there is no transition 
-					console.log("there is not a transition")
 					this.setState({curIndex: this.state.curIndex+1}, () => { // update the current index
 						this.testLine(0); // go back to the starting state
 					}); 
@@ -424,20 +407,14 @@ class Regex extends Component {
 
 	// finds the next line break in the file
 	findBreak(index) {
-		console.log(`findBreak`);
 		if (index === this.props.inputText.length) { // if we have gotten to the end of the file
-			console.log('end of file');
 			acceptedLines[this.state.acceptedLinesIndex] = this.props.inputText.substr(this.state.startIndex, index);
 			this.setState({curIndex: index}, () => {
 				this.testFile();
 			});			
 		} else {
 			var curChar = this.props.inputText[index];
-			console.log(curChar + ' bitch');
 			if (curChar === "\n") { // if we have found the end of a line
-				console.log(this.state.startIndex);
-				console.log(index);
-				console.log(this.props.inputText.substring(this.state.startIndex, index));
 				acceptedLines[this.state.acceptedLinesIndex] = this.props.inputText.substring(this.state.startIndex, index);
 				this.setState({acceptedLinesIndex: this.state.acceptedLinesIndex+1}, () => {
 					this.setState({curIndex: index+1}, () => {
@@ -451,38 +428,6 @@ class Regex extends Component {
 	}
 
 	// ******************************************************** //
-
-	// init(callback) {
-	// 	if (submitted === false) { // if user has not tested the regex
-	// 		submitted = true;
-	// 		callback();
-	// 	} else {
-	// 		// reset the global variables
-	// 		var transitions = [];
-	// 		var transitionsDFA = [];
-	// 		var acceptedLines = []; 
-	// 		var regex = '';
-	// 		var groupingIndex = []; 
-	// 		var alternatorStartIndex = 0;
-	// 		var alternatorIndex = []; 
-	// 		var state = 0; 
-	// 		// reset the component's state;
-	// 		this.setState({
-	// 			error: '',
-	// 			indexInRegex: 0, 
-	// 			indexInTransitions: 0, 
-	// 			prevCharacter: '', 
-	// 			curCharacter: '', 
-	// 			nextCharacter: '', 
-	// 			curIndex: 0,
-	// 			startIndex: 0,
-	// 			acceptedLinesIndex: 0,
-	// 			acceptingState: 0
-	// 			}, () => {
-	// 				callback();
-	// 		});	
-	// 	}
-	// }
 
 	// gets called when the input changes
 	onInputChange(event) {
