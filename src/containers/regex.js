@@ -17,11 +17,11 @@ var transitionsDFA = [];
 var acceptedLines = []; // holds the accepted lines of the input file
 var regex = '';
 var groupingIndex = []; // array that holds the states where the () started
-var alternatorStartIndex = 0;
+var alternatorStartIndex = -1;
 var alternatorIndex = []; // array that holds the last state before the | 
 var state = 0; // used for the accepting state
+var submitted = false;
 const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789?<>!@#%&+={[]}-_ '; // all the acceptable characters
-
 
 class Regex extends Component {
 	constructor(props) {
@@ -36,8 +36,6 @@ class Regex extends Component {
 			prevCharacter: '', // the previous character in the regex		
 			curCharacter: '', // the current character in the regex
 			nextCharacter: '', // the next character in the regex
-			carrot: false, // if the regex contains a carrot
-			eof: false, // if the regex contains a "$"
 			curIndex: 0, // the current index in the input file
 			startIndex: 0, //  the starting index in a line in the input file
 			acceptedLinesIndex: 0, // the index into the acceptedLines array
@@ -45,6 +43,7 @@ class Regex extends Component {
 		};  
 		this.onFormSubmit = this.onFormSubmit.bind(this);
 		this.onInputChange = this.onInputChange.bind(this);
+
 	}
 
 	// checks if the input is empty
@@ -100,17 +99,17 @@ class Regex extends Component {
 	}
 
 	createLoopbackTransition() {
-		console.log("loopback transitions");
+		console.log("looping nereds")
 		var curCharacter = this.state.curCharacter; // assign the current character in the regex to a variable
 		var stateTransitions = {}; // create an object that will hold all the transitions on a state
-		if (transitions[this.state.indexInTransitions]) { // if there are already transitions on the current state
+		if (transitions[this.state.indexInTransitions] || alternatorStartIndex !== -1 ) { // if there are already transitions on the current state
 			if (groupingIndex.length === 0) { // if the transition loops back to the current state
 				state = this.state.indexInTransitions;
 				transitions[this.state.indexInTransitions][curCharacter] = [state];					
 			} else {
 				if (alternatorIndex.length > 0) { // if we need to go back to the last state before the alternator
 					state = alternatorIndex.pop();
-					transitions[this.state.indexInTransitions][curCharacter] = [state];
+					transitions[alternatorStartIndex][curCharacter] = [state];
 				} else {
 					state = groupingIndex.pop();
 					transitions[this.state.indexInTransitions][curCharacter] = [state] // creating a transition back to a previous state
@@ -177,34 +176,18 @@ class Regex extends Component {
 		});
 	}
 
-	convertToDFA(callback) {
-		
-		// var i = 0; // index in the transitions array
-		// var character; // is the key of the object at the index in transitions
-		// for (var i = 0; i < transitions.length; i++) {
-		// 	for (character in transitions[i]) {
-		// 		if (transitions[character].length > 1) { // if there are multiple transitions for a character on a state
-		// 			transitions[character].splice(1,1); // remove the transition from the array
-		// 		} 
-		// 	}
-		// }
-		callback();
-	}
-
 	// reads the regex and calls the correct production based on the current character 
 	convertToNFA() {
 		if (this.state.error !== "") { // if there is an error in the regex
 			return false;
 		} else {
 			// console.log(this.state.indexInRegex + "this is the index in the regex");
-			if (this.state.indexInRegex > regex.length) { // if no more characters to read
+			if (this.state.indexInRegex >= regex.length) { // if no more characters to read
 				this.setAcceptingState(state, () => {
 					this.props.submitAcceptedState(this.state.acceptingState); // calls the submitAcceptingState action creator
 					this.props.submitNFA(transitions);  // calls the submitNFA action creator
-					this.convertToDFA(() => {
-						this.props.submitDFA(transitions);
-						this.testFile();
-					});
+					this.props.submitDFA(transitions);
+					this.testFile();
 				});					 
 			} else { 
 				switch (this.state.curCharacter) {
@@ -235,16 +218,6 @@ class Regex extends Component {
 							this.convertToNFA();
 						});
 						break;
-					// case '^':
-					// 	this.carrot(() => {
-					// 		this.convertToNFA();
-					// 	});
-					// 	break;
-					// case '$':
-					// 	this.eof(() => {
-					// 		this.convertToNFA();
-					// 	});
-					// 	break;
 					default:
 						this.character(() => {
 							this.convertToNFA();
@@ -259,7 +232,7 @@ class Regex extends Component {
 	grouping(callback) {
 		console.log("grouping");
 		if (this.state.curCharacter === '(') {
-			groupingIndex.unshift(this.state.indexInTransitions); // need to remember the current state in case we'll need to loopback to it or create a new transition from it
+			groupingIndex.push(this.state.indexInTransitions); // need to remember the current state in case we'll need to loopback to it or create a new transition from it
 			this.getCharactersInRegex(() => { 	// get the new characters in the regex
 				this.updateRegexIndex(1, () => { // increase the regex index by 1	
 					callback(); // keep calling the function until the regex is converted into an NFA
@@ -337,7 +310,6 @@ class Regex extends Component {
 			});
 		} else if (this.state.nextCharacter === ")") {
 			this.grouping(callback);
-
 		} else if (this.state.nextCharacter === "|") {
 			this.alternator(callback);
 		}	
@@ -364,11 +336,11 @@ class Regex extends Component {
 		} else if (this.state.nextCharacter === "|") { // if the next character is "|"
 			this.createTransition("new"); // add a new transition but don't update state
 				alternatorStartIndex = this.state.indexInTransitions;
+				alternatorIndex.push(this.state.indexInTransitions+1); // need to keep track of last state before the alternator
 				this.updateTransitionsIndex(() => {
 					this.updateRegexIndex(1, () => { // update the regex first
 						this.getCharactersInRegex(() => {
 							this.updateRegexIndex(1, () => {
-								alternatorIndex.push(this.state.indexInTransitions); // need to keep track of last state before the alternator
 								callback();
 							});
 						});
@@ -480,6 +452,38 @@ class Regex extends Component {
 
 	// ******************************************************** //
 
+	// init(callback) {
+	// 	if (submitted === false) { // if user has not tested the regex
+	// 		submitted = true;
+	// 		callback();
+	// 	} else {
+	// 		// reset the global variables
+	// 		var transitions = [];
+	// 		var transitionsDFA = [];
+	// 		var acceptedLines = []; 
+	// 		var regex = '';
+	// 		var groupingIndex = []; 
+	// 		var alternatorStartIndex = 0;
+	// 		var alternatorIndex = []; 
+	// 		var state = 0; 
+	// 		// reset the component's state;
+	// 		this.setState({
+	// 			error: '',
+	// 			indexInRegex: 0, 
+	// 			indexInTransitions: 0, 
+	// 			prevCharacter: '', 
+	// 			curCharacter: '', 
+	// 			nextCharacter: '', 
+	// 			curIndex: 0,
+	// 			startIndex: 0,
+	// 			acceptedLinesIndex: 0,
+	// 			acceptingState: 0
+	// 			}, () => {
+	// 				callback();
+	// 		});	
+	// 	}
+	// }
+
 	// gets called when the input changes
 	onInputChange(event) {
 		this.setState({regex: event.target.value});
@@ -487,9 +491,9 @@ class Regex extends Component {
 
 	// gets called when the form is submitted
 	onFormSubmit(event) {
+		regex = this.state.regex; // assign the regex to a global variable
 		event.preventDefault(); // so the browser doesn't submit the form
-		if (this.props.inputText !== "") {
-			regex = this.state.regex; // assign the regex to a global variable
+		if (this.props.inputText !== "") {				
 			if(this.validate() === false) {			
 				this.setState({error: ''}, () => {
 					this.getCharactersInRegex(() => {
