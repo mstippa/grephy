@@ -18,7 +18,6 @@ class NFA extends Component {
 		var globalCounter = 0;		
 		var len = NFA.length;
 		for(; i < len; i++) { // loop through all the elements(states) in the NFA
-			console.log(i + " pppppasdfasdf");
 			if (NFA[i]) {				
 				states[i] = {"id": i};
 				states[i]["label"] = `${i}`;			
@@ -36,7 +35,6 @@ class NFA extends Component {
 					globalCounter++;
 				}
 			} else {
-				console.log("I am oenis bo")
 				states[i] = {"id" : i};
 				states[i]["label"] = '@';
 				acceptingState = true;
