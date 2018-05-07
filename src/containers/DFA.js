@@ -20,7 +20,10 @@ class DFA extends Component {
 		for(; i < len; i++) { // loop through all the elements(states) in the NFA
 			if (DFA[i]) {				
 				states[i] = {"id": i};
-				states[i]["label"] = `${i}`;			
+				states[i]["label"] = `${i}`;	
+				transitions[globalCounter] = {"from": i};
+				transitions[globalCounter]["to"] = 100; // error state		
+				globalCounter++;
 				var state = DFA[i];
 				var transitionArray;
 				for (transitionArray in state) { // loop through all transitions for a state
@@ -30,14 +33,10 @@ class DFA extends Component {
 						transitions[globalCounter] = {"from" : i };
 						transitions[globalCounter]["to"] = state[transitionArray][j];
 						transitions[globalCounter]["label"] = transitionArray;
-						globalCounter++;
-						transitions[globalCounter] = {"from": i};
-						transitions[globalCounter]["to"] = 100; // error state
 					}								
 					globalCounter++;
 				}
 			} else {
-				console.log("I am oenis bo")
 				states[i] = {"id" : i};
 				states[i]["label"] = '@';
 				acceptingState = true;
